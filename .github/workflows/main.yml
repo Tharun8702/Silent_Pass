@@ -1,39 +1,8 @@
 name: Build Silent_Pass
 
-on: 
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
-  build-linux:
-    name: Build for Linux
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Linux Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake gcc g++ libnss3-dev libsecret-1-dev libssl-dev pkg-config sqlite3 libsqlite3-dev zlib1g-dev libxml2-dev
-
-      - name: Configure and Build
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
-
-      - name: Upload Linux Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: silent-pass-linux
-          path: build/Silent_Pass
-
   build-windows:
     name: Build for Windows (Cross-Compile)
     runs-on: ubuntu-latest
@@ -43,21 +12,34 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install MinGW and Windows OpenSSL
+      - name: Install MinGW Cross-Compiler
         run: |
           sudo apt-get update
-          # Install the cross-compiler and the mingw-specific openssl development files
           sudo apt-get install -y cmake mingw-w64
-          # Note: If mingw-specific openssl isn't in main apt repo, 
-          # we ensure the toolchain is ready for the project's internal build
-          sudo apt-get install -y binutils-mingw-w64-i686 g++-mingw-w64-i686
+
+      - name: Download and Setup Windows OpenSSL
+        run: |
+          # Create a directory for dependencies
+          mkdir -p $GITHUB_WORKSPACE/deps
+          cd $GITHUB_WORKSPACE/deps
+          
+          # Download pre-built OpenSSL for MinGW (i686 for 32-bit)
+          # We use a common community build for MinGW cross-compiling
+          wget https://github.com
+          unzip openssl-3.1.2-win32-mingw.zip -d openssl_win
+          
+          # Set environment variable for CMake to find it
+          echo "OPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/deps/openssl_win" >> $GITHUB_ENV
 
       - name: Cross-Compile for Windows
         run: |
           mkdir build
           cd build
-          # Uses the mingw32 toolchain file provided in the repository
-          cmake -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/mingw32.toolchain.cmake ..
+          # Pass the OpenSSL path to CMake so it finds the headers
+          cmake -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/mingw32.toolchain.cmake \
+                -DOPENSSL_ROOT_DIR=${{ env.OPENSSL_ROOT_DIR }} \
+                -DOPENSSL_INCLUDE_DIR=${{ env.OPENSSL_ROOT_DIR }}/include \
+                ..
           make
 
       - name: Upload Windows Binary
