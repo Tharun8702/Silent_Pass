@@ -19,17 +19,22 @@ jobs:
 
       - name: Download and Setup Windows OpenSSL
         run: |
-          # Create a directory for dependencies
           mkdir -p $GITHUB_WORKSPACE/deps
           cd $GITHUB_WORKSPACE/deps
           
-          # Download pre-built OpenSSL for MinGW (i686 for 32-bit)
-          # We use a common community build for MinGW cross-compiling
-          wget https://github.com
-          unzip openssl-3.1.2-win32-mingw.zip -d openssl_win
+          # Use -L to follow redirects and --content-disposition to get the right filename
+          wget -L --content-disposition https://github.com
           
-          # Set environment variable for CMake to find it
+          # Check if the file exists before unzipping
+          if [ -f openssl-3.1.2-win32-mingw.zip ]; then
+            unzip openssl-3.1.2-win32-mingw.zip -d openssl_win
+          else
+            echo "Download failed, file not found."
+            exit 1
+          fi
+          
           echo "OPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/deps/openssl_win" >> $GITHUB_ENV
+
 
       - name: Cross-Compile for Windows
         run: |
