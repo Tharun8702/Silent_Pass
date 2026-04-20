@@ -22,17 +22,17 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/deps
           cd $GITHUB_WORKSPACE/deps
           
-          # Use -L to follow redirects and --content-disposition to get the right filename
-          wget -L --content-disposition https://github.com
+          # Use curl -L to follow redirects and -o to specify the output filename exactly
+          curl -L "https://github.com" -o openssl.zip
           
-          # Check if the file exists before unzipping
-          if [ -f openssl-3.1.2-win32-mingw.zip ]; then
-            unzip openssl-3.1.2-win32-mingw.zip -d openssl_win
-          else
-            echo "Download failed, file not found."
+          # Unzip and verify
+          unzip openssl.zip -d openssl_win
+          if [ ! -d "openssl_win" ]; then
+            echo "Extraction failed!"
             exit 1
           fi
           
+          # Export the path for the next steps
           echo "OPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/deps/openssl_win" >> $GITHUB_ENV
 
 
