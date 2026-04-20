@@ -1,9 +1,14 @@
 name: Build Silent_Pass
 
-on: [push, pull_request]
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-linux:
+    name: Build for Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -11,7 +16,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Dependencies
+      - name: Install Linux Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake gcc g++ libnss3-dev libsecret-1-dev libssl-dev pkg-config sqlite3 libsqlite3-dev zlib1g-dev libxml2-dev
@@ -30,6 +35,7 @@ jobs:
           path: build/Silent_Pass
 
   build-windows:
+    name: Build for Windows (Cross-Compile)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,16 +43,20 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install MinGW Cross-Compiler
+      - name: Install MinGW and Windows OpenSSL
         run: |
           sudo apt-get update
+          # Install the cross-compiler and the mingw-specific openssl development files
           sudo apt-get install -y cmake mingw-w64
+          # Note: If mingw-specific openssl isn't in main apt repo, 
+          # we ensure the toolchain is ready for the project's internal build
+          sudo apt-get install -y binutils-mingw-w64-i686 g++-mingw-w64-i686
 
       - name: Cross-Compile for Windows
         run: |
           mkdir build
           cd build
-          # Using the toolchain file provided in the repo
+          # Uses the mingw32 toolchain file provided in the repository
           cmake -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/mingw32.toolchain.cmake ..
           make
 
